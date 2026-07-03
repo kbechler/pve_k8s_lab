@@ -1,0 +1,110 @@
+---
+
+- name: "Create config directory"
+  ansible.builtin.file:
+    path: "/etc/rancher/rke2"
+    state: "directory"
+    mode: "0o777"
+
+- name: "Download RKE2 installation script"
+  ansible.builtin.get_url:
+    url: "https://get.rke2.io"
+    dest: /tmp/rke2.sh
+    owner: "root"
+    group: "root"
+    mode: "0o755"
+
+- name: "Populate service facts"
+  ansible.builtin.service_facts:
+
+- name: "Check RKE2 version"
+  ansible.builtin.shell: |
+    set -o pipefail
+    {{ rke2_bin_path }} --version | awk '/^rke2/ {print $3}'
+  args:
+    executable: /bin/bash
+  changed_when: false
+  register: installed_rke2_version
+  when: '"rke2-server.service" in ansible_facts.services or "rke2-agent.service" in ansible_facts.services'
+
+- name: "Show installed RKE2 version"
+  when: installed_rke2_version.stdout is defined
+  ansible.builtin.debug:
+    var: installed_rke2_version.stdout
+
+- name: "Configure first master"
+  when:
+    - inventory_hostname == groups['rke2_masters'][0]
+  block:
+
+    - name: "First master | Create config file"
+      ansible.builtin.template:
+        src: "master1.j2"
+        dest: "/etc/rancher/rke2/config.yaml"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+      register: config_file
+
+    - name: "First master | Install RKE2"
+      ansible.builtin.import_tasks: master.yml
+
+    - name: "First master | Fetch token"
+      ansible.builtin.fetch:
+        src: /var/lib/rancher/rke2/server/token
+        dest: ./files/rke2_token
+        flat: true
+
+    - name: "First master | Fetch kubeconfig"
+      when: inventory_hostname == groups['rke2_masters'][0]
+      ansible.builtin.fetch:
+        src: /etc/rancher/rke2/rke2.yaml
+        dest: ./files/rke2_config.yaml
+        flat: true
+
+    - name: "First master | Install kube-vip"
+      ansible.builtin.import_tasks: kube-vip.yml
+
+
+- name: "Read token into variable"
+  ansible.builtin.set_fact:
+    token: "{{ lookup('file', './files/rke2_token') | trim }}"
+  delegate_to: localhost
+  run_once: true
+
+
+- name: Configure master nodes"
+  when:
+    - inventory_hostname in groups['rke2_masters']
+    - inventory_hostname != groups['rke2_masters'][0]
+  block:
+
+    - name: "Masters | Create config file"
+      ansible.builtin.template:
+        src: "master2.j2"
+        dest: "/etc/rancher/rke2/config.yaml"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+
+    - name: "Install RKE2"
+      ansible.builtin.import_tasks: master.yml
+
+
+- name: Configure worker nodes"
+  when: inventory_hostname in groups['rke2_workers']
+  block:
+
+    - name: "Workers | Create config file"
+      ansible.builtin.template:
+        src: "worker.j2"
+        dest: "/etc/rancher/rke2/config.yaml"
+        owner: "root"
+        group: "root"
+        mode: "0644"
+      register: config_file
+
+    - name: "Install RKE2"
+      ansible.builtin.import_tasks: slave.yml
+
+...

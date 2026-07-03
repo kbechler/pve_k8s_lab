@@ -1,4 +1,4 @@
-# This file contains senstivite data like passwords and tokens
+# This file contains sensitive data like passwords and tokens
 env.sh
 
 # OpenTofu

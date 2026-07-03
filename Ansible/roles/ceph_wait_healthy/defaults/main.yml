@@ -1,0 +1,6 @@
+---
+
+ceph_wait_healthy_retries: 30
+ceph_wait_healthy_delay: 10
+
+...

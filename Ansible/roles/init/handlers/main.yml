@@ -1,0 +1,13 @@
+---
+
+- name: "Reconfigure tzdata"
+  ansible.builtin.command: >
+    dpkg-reconfigure -f noninteractive tzdata
+  changed_when: false
+
+- name: "Update locale"
+  ansible.builtin.command: >
+    update-locale LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
+  changed_when: false
+
+...

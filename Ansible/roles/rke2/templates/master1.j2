@@ -1,0 +1,15 @@
+tls-san:
+  - {{ rke2_vip }}
+{% for host in groups['rke2_masters'] %}
+  - {{ hostvars[host].ansible_ssh_host }}
+{% endfor %}
+{% if rke2_extra_sans is defined %}
+{%   for san in rke2_extra_sans %}
+  - {{ san }}
+{%   endfor %}
+{% endif %}
+node-taint:
+  - "CriticalAddonsOnly=true:NoExecute"
+disable:
+  - rke2-ingress-nginx
+  - cloud-controller-manager

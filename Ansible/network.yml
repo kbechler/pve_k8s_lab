@@ -1,0 +1,19 @@
+---
+
+- name: "Gather facts"
+  hosts: gateways
+  become: true
+  gather_facts: true
+  tasks: []
+  tags: always
+
+- name: "Initialize all nodes"
+  hosts: gateways
+  become: true
+  gather_facts: false
+  force_handlers: true
+  roles:
+    - { role: "init", tags: ["init"] }
+    - { role: "gateway", tags: ["gateway"] }
+
+...

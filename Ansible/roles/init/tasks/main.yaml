@@ -1,0 +1,62 @@
+---
+
+- name: "Wait for cloud-init to finish"
+  ansible.builtin.command: cloud-init status --wait
+  register: cloudinit_status
+  changed_when: false
+  failed_when: cloudinit_status.rc == 1
+
+- name: "Disable automatic package updates"
+  ansible.builtin.systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: false
+    masked: true
+  loop:
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+    - apt-daily.service
+    - apt-daily-upgrade.service
+    - unattended-upgrades.service
+
+- name: "Set timezone"
+  community.general.timezone:
+    name: "{{ timezone }}"
+  register: timezone_result
+  notify: "Reconfigure tzdata"
+
+- name: "Generate locales"
+  community.general.locale_gen:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - "en_US.UTF-8"
+    - "pl_PL.UTF-8"
+  register: locales
+  notify: "Update locale"
+
+- name: "Install packages"
+  ansible.builtin.apt:
+    state: "present"
+    name:
+      - "gnupg2"
+      - "qemu-guest-agent"
+    update_cache: true
+
+- name: "Install additional packages"
+  ansible.builtin.apt:
+    state: "present"
+    name: "{{ extra_packages | default([]) }}"
+    install_recommends: false
+
+- name: "Update sysctl settings"
+  ansible.posix.sysctl:
+    state: "present"
+    name: '{{ item.key }}'
+    value: '{{ item.value }}'
+    sysctl_set: true
+    reload: true
+    ignoreerrors: true
+  with_dict: '{{ sysctl_config | default([]) }}'
+
+...

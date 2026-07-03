@@ -1,0 +1,71 @@
+---
+
+- name: Bootstrap cluster
+  when: inventory_hostname == groups['ceph'][0]
+  block:
+    - name: "Check if cluster already bootstrapped"
+      ansible.builtin.stat:
+        path: /etc/ceph/ceph.conf
+      register: ceph_conf
+
+    - name: "Bootstrap cluster"
+      ansible.builtin.command: >
+        cephadm --image {{ ceph_image }} bootstrap
+        --mon-ip {{ hostvars[inventory_hostname].ansible_facts.default_ipv4.address }}
+        --skip-monitoring-stack
+      when: not ceph_conf.stat.exists
+
+    - name: "Get cluster fsid"
+      changed_when: false
+      ansible.builtin.command: cephadm shell -- ceph fsid
+      register: ceph_fsid_result
+
+    - name: "Save fsid locally (needed later for ceph-csi ConfigMap)"
+      delegate_to: localhost
+      become: false
+      ansible.builtin.copy:
+        content: "{{ ceph_fsid_result.stdout_lines[-1] }}"
+        dest: ./files/ceph_fsid
+
+- name: Fetch SSH public key from first node
+  when: inventory_hostname == groups['ceph'][0]
+  ansible.builtin.fetch:
+    src: /etc/ceph/ceph.pub
+    dest: /tmp/ceph.pub
+    flat: true
+
+- name: "Copy SSH public key to other nodes"
+  when: inventory_hostname != groups['ceph'][0]
+  ansible.builtin.copy:
+    src: /tmp/ceph.pub
+    dest: /root/.ssh/authorized_keys
+    owner: root
+    group: root
+    mode: '0400'
+
+- name: Orchestrate cluster
+  when: inventory_hostname != groups['ceph'][0]
+  delegate_to: "{{ groups['ceph'][0] }}"
+  block:
+    - name: "Orchestrate node"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph orch host add {{ ansible_facts.hostname }} {{ ansible_facts.default_ipv4.address }}
+
+- name: Configure components
+  when: inventory_hostname == groups['ceph'][0]
+  block:
+    - name: "Configure OSDs"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph orch apply osd --all-available-devices
+    - name: "Configure CephFS"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph fs volume create {{ ceph_cephfs_name }}
+    - name: "Configure MDS"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph orch apply mds {{ ceph_cephfs_name }} --placement "3"
+
+...

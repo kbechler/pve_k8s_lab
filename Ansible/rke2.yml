@@ -1,0 +1,24 @@
+---
+
+- name: "Gather facts"
+  hosts: rke2
+  become: true
+  gather_facts: true
+  tasks: []
+  tags: always
+
+- name: "Initialize all nodes"
+  hosts: rke2
+  become: true
+  gather_facts: false
+  roles:
+    - { role: "init", tags: ["init"] }
+
+- name: "Install RKE2 cluster"
+  hosts: rke2
+  become: true
+  gather_facts: false
+  roles:
+    - { role: "rke2", tags: ["rke2"] }
+
+...

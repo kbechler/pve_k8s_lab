@@ -1,0 +1,36 @@
+---
+
+- name: "Create nftables.conf file"
+  ansible.builtin.template:
+    src: "nftables.conf.j2"
+    dest: "/etc/nftables.conf"
+    owner: "root"
+    group: "root"
+    mode: "0644"
+  notify: "Restart nftables"
+
+- name: "Create keepalived.conf file"
+  ansible.builtin.template:
+    src: "keepalived.conf.j2"
+    dest: "/etc/keepalived/keepalived.conf"
+    owner: "root"
+    group: "root"
+    mode: "0o644"
+  notify: "Restart keepalived"
+
+- name: "Apply pending nftables/keepalived restarts now"
+  ansible.builtin.meta: flush_handlers
+
+- name: "Ensure nftables is running"
+  ansible.builtin.systemd:
+    name: "nftables"
+    state: started
+    enabled: true
+
+- name: "Ensure keepalived is running"
+  ansible.builtin.systemd:
+    name: "keepalived"
+    state: started
+    enabled: true
+
+...

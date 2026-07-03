@@ -1,0 +1,59 @@
+#!/usr/sbin/nft -f
+
+# This file is managed by Ansible
+# Please, do not modify by hand
+
+flush ruleset
+
+define GATEWAYS = {
+{% for host in groups['gateways'] if host != inventory_hostname %}
+  {{ hostvars[host]['ansible_facts'][keepalived_lan_interface]['ipv4']['address'] }}/32{{ "," if not loop.last }}
+{% endfor %}
+}
+
+define LAN = { 192.168.0.0/24 }
+
+table inet filter {
+  chain input {
+    type filter hook input priority filter
+    policy drop
+    ct state related,established accept
+    iifname "lo" accept
+    ip saddr $GATEWAYS meta l4proto vrrp accept
+    meta l4proto icmp accept
+    meta l4proto tcp tcp dport 22 accept
+    reject with icmp type host-prohibited
+  }
+
+  chain forward {
+    type filter hook forward priority filter
+    policy drop
+    ct state related,established accept
+    ip saddr $LAN oif "eth0" accept
+  }
+
+  chain output {
+    type filter hook output priority filter
+    policy accept
+  }
+}
+
+table ip nat {
+  chain prerouting {
+    type nat hook prerouting priority -100
+  }
+
+  chain postrouting {
+    type nat hook postrouting priority srcnat
+    policy accept
+    ip saddr $LAN oifname "eth0" masquerade
+  }
+}
+
+table ip6 filter {
+  chain input {
+    type filter hook input priority filter
+    policy drop
+    reject with icmpv6 type no-route
+  }
+}

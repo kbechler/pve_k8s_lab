@@ -1,0 +1,17 @@
+# Host lists (gateways/ceph/rke2_masters/rke2_workers groups) are generated
+# from OpenTofu state -- see inventory/generated.ini (scripts/gen_inventory.py).
+# This file only holds group vars that Tofu doesn't know about.
+
+[rke2:children]
+rke2_masters
+rke2_workers
+
+[ceph:vars]
+ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@{{ external_ip }}"'
+
+[rke2:vars]
+ansible_ssh_common_args='-o ProxyCommand="ssh -W %h:%p -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@{{ external_ip }}"'
+rke2_extra_sans=["extra1.example.com","extra2.example.com","{{ external_ip }}"]
+
+[all:vars]
+ansible_ssh_user=ubuntu

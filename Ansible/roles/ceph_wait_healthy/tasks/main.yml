@@ -1,0 +1,12 @@
+---
+
+- name: "Wait for cluster to reach HEALTH_OK"
+  when: inventory_hostname == groups['ceph'][0]
+  ansible.builtin.command: cephadm shell -- ceph status --format json
+  register: ceph_status
+  until: (ceph_status.stdout | from_json).health.status == "HEALTH_OK"
+  retries: "{{ ceph_wait_healthy_retries }}"
+  delay: "{{ ceph_wait_healthy_delay }}"
+  changed_when: false
+
+...

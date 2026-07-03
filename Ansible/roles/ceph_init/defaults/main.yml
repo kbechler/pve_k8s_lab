@@ -1,0 +1,6 @@
+---
+
+ceph_image: "quay.io/ceph/ceph:v19"
+ceph_cephfs_name: "cephfs"
+
+...

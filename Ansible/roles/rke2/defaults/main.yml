@@ -1,0 +1,12 @@
+---
+
+rke2_kubevip_tag: "v0.4.2"
+rke2_nic: "eth0"
+
+rke2_channel: "stable"
+rke2_version: "v1.34.1+rke2r1"
+
+rke2_data_path: "/var/lib/rancher/rke2"
+rke2_bin_path: "/usr/local/bin/rke2"
+
+...

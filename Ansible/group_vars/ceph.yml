@@ -1,0 +1,8 @@
+---
+
+extra_packages:
+  - podman
+  - cephadm
+  - catatonit
+
+...

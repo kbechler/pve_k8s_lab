@@ -1,0 +1,10 @@
+---
+
+keepalived_wan_interface: "eth0"
+keepalived_lan_interface: "eth1"
+keepalived_wan_ip: "{{ external_ip }}"
+keepalived_lan_ip: "{{ internal_gw }}"
+keepalived_router_id: 1
+keepalived_auth_pass: "abcd1234"
+
+...

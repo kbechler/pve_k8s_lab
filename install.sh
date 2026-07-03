@@ -8,6 +8,7 @@ source ./env.sh
     tofu validate
     tofu plan
     tofu apply
+    tofu output -json > ../../Ansible/files/tofu_network.json
 )
 
 (
@@ -16,6 +17,7 @@ source ./env.sh
     tofu validate
     tofu plan
     tofu apply
+    tofu output -json > ../../Ansible/files/tofu_ceph.json
 )
 
 (
@@ -24,4 +26,13 @@ source ./env.sh
     tofu validate
     tofu plan
     tofu apply
+    tofu output -json > ../../Ansible/files/tofu_rke2.json
+)
+
+(
+    cd Ansible
+    python3 scripts/gen_inventory.py
+    ansible-playbook -i inventory ./network.yml
+    ansible-playbook -i inventory ./ceph.yml
+    ansible-playbook -i inventory ./rke2.yml
 )

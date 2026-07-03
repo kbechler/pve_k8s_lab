@@ -1,0 +1,25 @@
+---
+
+- name: "Gather facts"
+  hosts: ceph
+  become: true
+  gather_facts: true
+  tasks: []
+  tags: always
+
+- name: "Initialize nodes"
+  hosts: ceph
+  become: true
+  gather_facts: false
+  roles:
+    - { role: "init", tags: ["init"] }
+
+- name: "CEPH init"
+  hosts: ceph
+  become: true
+  gather_facts: false
+  roles:
+    - { role: "ceph_init", tags: ["ceph"] }
+    - { role: "ceph_wait_healthy", tags: ["ceph", "wait_healthy"] }
+
+...
