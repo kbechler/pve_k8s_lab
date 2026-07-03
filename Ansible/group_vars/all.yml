@@ -1,5 +1,7 @@
 ---
 
+lan_network: "192.168.0.0/24"
+
 # Address on the 10.80.80.0/24 network used to reach ceph/rke2 hosts
 # via ProxyJump (it's the gateway cluster's keepalived VIP).
 external_ip: "10.80.80.210"
@@ -7,5 +9,7 @@ external_ip: "10.80.80.210"
 # Default gateway on the 192.168.0.0/24 LAN (the gateway cluster's
 # keepalived VIP on the LAN side).
 internal_gw: "192.168.0.4"
+
+rke2_vip: "192.168.0.20"
 
 ...

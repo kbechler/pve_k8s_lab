@@ -56,11 +56,18 @@
         flat: true
 
     - name: "First master | Fetch kubeconfig"
-      when: inventory_hostname == groups['rke2_masters'][0]
       ansible.builtin.fetch:
         src: /etc/rancher/rke2/rke2.yaml
         dest: ./files/rke2_config.yaml
         flat: true
+
+    - name: "First master | Fix server address in kubeconfig"
+      delegate_to: localhost
+      become: false
+      ansible.builtin.replace:
+        path: ./files/rke2_config.yaml
+        regexp: 'https://127\.0\.0\.1:6443'
+        replace: "https://{{ external_ip }}:6443"
 
     - name: "First master | Install kube-vip"
       ansible.builtin.import_tasks: kube-vip.yml

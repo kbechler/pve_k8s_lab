@@ -11,8 +11,6 @@ define GATEWAYS = {
 {% endfor %}
 }
 
-define LAN = { 192.168.0.0/24 }
-
 table inet filter {
   chain input {
     type filter hook input priority filter
@@ -29,7 +27,8 @@ table inet filter {
     type filter hook forward priority filter
     policy drop
     ct state related,established accept
-    ip saddr $LAN oif "eth0" accept
+    ip saddr {{ lan_network }} oif "eth0" accept
+    meta l4proto tcp tcp dport 6443 ip daddr {{ rke2_vip }} accept comment "infra k8s api"
   }
 
   chain output {
@@ -41,12 +40,13 @@ table inet filter {
 table ip nat {
   chain prerouting {
     type nat hook prerouting priority -100
+    iif "eth0" ip daddr {{ external_ip }}  tcp dport 6443 dnat to {{ rke2_vip }}:6443
   }
 
   chain postrouting {
     type nat hook postrouting priority srcnat
     policy accept
-    ip saddr $LAN oifname "eth0" masquerade
+    ip saddr {{ lan_network }} oifname "eth0" masquerade
   }
 }
 
