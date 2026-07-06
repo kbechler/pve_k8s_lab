@@ -27,9 +27,10 @@ def main():
     ]
     for filename, mappings in SOURCES:
         path = FILES_DIR / filename
-        if not path.exists():
-            continue
-        data = json.loads(path.read_text())
+        # Emit an (empty) group header even when the tofu output is missing,
+        # e.g. Ceph not deployed -- otherwise [ceph:vars] in inventory/static
+        # refers to an undefined group and Ansible refuses to parse the file.
+        data = json.loads(path.read_text()) if path.exists() else {}
         for output_name, group in mappings:
             nodes = data.get(output_name, {}).get("value", [])
             lines.append(f"[{group}]")
