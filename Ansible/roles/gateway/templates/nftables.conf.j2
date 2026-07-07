@@ -20,6 +20,10 @@ table inet filter {
     ip saddr $GATEWAYS meta l4proto vrrp accept
     meta l4proto icmp accept
     meta l4proto tcp tcp dport 22 accept
+
+    iifname "eth0" tcp dport { 6443, 80, 443 } accept comment "haproxy: k8s api + ingress from WAN"
+    iifname "eth1" ip saddr {{ lan_network }} tcp dport { 6443, 9345, 80, 443 } accept comment "haproxy: k8s api + join + ingress from LAN"
+
     reject with icmp type host-prohibited
   }
 
@@ -28,7 +32,6 @@ table inet filter {
     policy drop
     ct state related,established accept
     ip saddr {{ lan_network }} oif "eth0" accept
-    meta l4proto tcp tcp dport 6443 ip daddr {{ rke2_vip }} accept comment "infra k8s api"
   }
 
   chain output {
@@ -40,7 +43,6 @@ table inet filter {
 table ip nat {
   chain prerouting {
     type nat hook prerouting priority -100
-    iif "eth0" ip daddr {{ external_ip }}  tcp dport 6443 dnat to {{ rke2_vip }}:6443
   }
 
   chain postrouting {

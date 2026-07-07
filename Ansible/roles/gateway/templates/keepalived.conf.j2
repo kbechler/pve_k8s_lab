@@ -1,3 +1,11 @@
+vrrp_script chk_haproxy {
+    script "/usr/bin/killall -0 haproxy"
+    interval 2
+    weight -20
+    fall 2
+    rise 2
+}
+
 vrrp_instance R {
     interface {{ keepalived_lan_interface }}
     state BACKUP
@@ -18,5 +26,11 @@ vrrp_instance R {
     virtual_ipaddress {
         {{ keepalived_wan_ip }} dev {{ keepalived_wan_interface }}
         {{ keepalived_lan_ip }} dev {{ keepalived_lan_interface }}
+    }
+    track_script {
+        chk_haproxy
+    }   
+   track_interface {
+        {{ keepalived_wan_interface }}
     }
 }

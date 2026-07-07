@@ -1,0 +1,18 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChartConfig
+metadata:
+  name: rke2-traefik
+  namespace: kube-system
+spec:
+  valuesContent: |-
+    ping:
+      enabled: true  
+    ports:
+      websecure:
+        proxyProtocol:
+          trustedIPs:
+            - "{{ lan_network }}"
+      web:
+        proxyProtocol:
+          trustedIPs:
+            - "{{ lan_network }}"

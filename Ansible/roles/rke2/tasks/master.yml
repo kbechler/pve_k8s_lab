@@ -12,16 +12,6 @@
   when: (rke2_version != ( installed_rke2_version.stdout | default({})) ) or ((installed_rke2_version is not defined) )
   register: rke2_install
 
-# - name: Copy Custom Manifests
-#   ansible.builtin.template:
-#     src: "{{ item }}.j2"
-#     dest: "{{ rke2_data_path }}/server/manifests/{{ item }}"
-#     owner: root
-#     group: root
-#     mode: "0o644"
-#   with_items: "{{ rke2_custom_manifests }}"
-#   when: rke2_custom_manifests
-
 - name: "Make sure that rke2-server is started"
   ansible.builtin.service:
     name: rke2-server

@@ -10,6 +10,4 @@ external_ip: "10.80.80.210"
 # keepalived VIP on the LAN side).
 internal_gw: "192.168.0.4"
 
-rke2_vip: "192.168.0.20"
-
 ...

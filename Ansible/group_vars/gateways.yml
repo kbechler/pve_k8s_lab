@@ -3,6 +3,8 @@
 extra_packages:
   - keepalived
   - nftables
+  - haproxy
+  - net-tools
 
 sysctl_config:
   - net.ipv4.ip_forward: 1

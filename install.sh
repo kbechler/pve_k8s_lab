@@ -6,8 +6,7 @@ source ./env.sh
     cd OpenTofu/network
     tofu init
     tofu validate
-    tofu plan
-    tofu apply
+    tofu apply -auto-approve
     tofu output -json > ../../Ansible/files/tofu_network.json
 )
 
@@ -15,8 +14,7 @@ source ./env.sh
     cd OpenTofu/ceph
     tofu init
     tofu validate
-    tofu plan
-    tofu apply
+    tofu apply -auto-approve
     tofu output -json > ../../Ansible/files/tofu_ceph.json
 )
 
@@ -24,8 +22,7 @@ source ./env.sh
     cd OpenTofu/rke2
     tofu init
     tofu validate
-    tofu plan
-    tofu apply
+    tofu apply -auto-approve
     tofu output -json > ../../Ansible/files/tofu_rke2.json
 )
 

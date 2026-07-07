@@ -1,9 +1,9 @@
 token: {{ token }}
-server: https://{{ rke2_vip }}:9345
+server: https://{{ internal_gw }}:9345
 tls-san:
-  - {{ rke2_vip }}
+  - {{ internal_gw }}
 {% for host in groups['rke2_masters'] %}
-  - {{ hostvars[host].ansible_ssh_host }}
+  - {{ hostvars[host].ansible_host }}
 {% endfor %}
 {% if rke2_extra_sans is defined %}
 {%   for san in rke2_extra_sans %}
@@ -13,5 +13,8 @@ tls-san:
 node-taint:
   - "CriticalAddonsOnly=true:NoExecute"
 disable:
-  - rke2-ingress-nginx
-  - cloud-controller-manager
+  - rke2-snapshot-controller
+  - rke2-snapshot-controller-crd
+  - rke2-snapshot-validation-webhook
+ingress-controller:
+  - traefik

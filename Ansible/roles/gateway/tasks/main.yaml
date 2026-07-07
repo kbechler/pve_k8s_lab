@@ -18,7 +18,16 @@
     mode: "0o644"
   notify: "Restart keepalived"
 
-- name: "Apply pending nftables/keepalived restarts now"
+- name: "Create haproxy.cfg file"
+  ansible.builtin.template:
+    src: "haproxy.cfg.j2"
+    dest: "/etc/haproxy/haproxy.cfg"
+    owner: "root"
+    group: "root"
+    mode: "0o644"
+  notify: "Restart haproxy"
+
+- name: "Apply pending nftables/keepalived/haproxy restarts now"
   ansible.builtin.meta: flush_handlers
 
 - name: "Ensure nftables is running"
@@ -30,6 +39,12 @@
 - name: "Ensure keepalived is running"
   ansible.builtin.systemd:
     name: "keepalived"
+    state: started
+    enabled: true
+
+- name: "Ensure haproxy is running"
+  ansible.builtin.systemd:
+    name: "haproxy"
     state: started
     enabled: true
 

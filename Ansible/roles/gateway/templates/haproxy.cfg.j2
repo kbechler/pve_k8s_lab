@@ -1,0 +1,84 @@
+global
+    log /dev/log local0
+    log /dev/log local1 notice
+    maxconn 20000
+    stats socket /run/haproxy/admin.sock mode 660 level admin
+    tune.ssl.default-dh-param 2048
+
+defaults
+    log     global
+    mode    tcp
+    option  tcplog
+    option  dontlognull
+    timeout connect 5s
+    timeout client  50s
+    timeout server  50s
+    retries 3
+
+
+
+backend ingress_http
+    mode tcp
+    balance roundrobin
+    option tcp-check
+{% for host in groups['rke2_workers'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:80 check send-proxy-v2
+{% endfor %}
+
+backend ingress_https
+    mode tcp
+    balance roundrobin
+    option tcp-check
+{% for host in groups['rke2_workers'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:443 check send-proxy-v2
+{% endfor %}
+
+backend k8s_api
+    mode tcp
+    balance roundrobin
+    option tcp-check
+{% for host in groups['rke2_masters'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:6443 check port 6443
+{% endfor %}
+
+backend rke2_supervisor
+    mode tcp
+    balance roundrobin
+    option tcp-check
+{% for host in groups['rke2_masters'] %}
+    server {{ host }} {{ hostvars[host].ansible_host }}:9345 check port 9345
+{% endfor %}
+
+
+
+frontend stats
+    mode http
+    bind 127.0.0.1:8404
+    stats enable
+    stats uri /
+    stats refresh 10s
+    stats show-node
+
+frontend http_in
+    bind *:80
+    mode tcp
+    option tcplog
+    default_backend ingress_http
+
+frontend https_in
+    bind *:443
+    mode tcp
+    option tcplog
+    default_backend ingress_https
+
+frontend k8s_api
+    bind *:6443
+    mode tcp
+    option tcplog
+    default_backend k8s_api
+
+frontend rke2_supervisor
+    bind *:9345
+    mode tcp
+    option tcplog
+    default_backend rke2_supervisor

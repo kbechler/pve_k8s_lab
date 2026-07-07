@@ -35,7 +35,7 @@ def main():
             nodes = data.get(output_name, {}).get("value", [])
             lines.append(f"[{group}]")
             for node in nodes:
-                lines.append(f"{node['name']} ansible_ssh_host={node['ip']}")
+                lines.append(f"{node['name']} ansible_host={node['ip']}")
             lines.append("")
 
     (INVENTORY_DIR / "generated.ini").write_text("\n".join(lines) + "\n")

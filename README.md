@@ -23,7 +23,7 @@ flowchart TB
         Op(["Operator (ProxyJump)"]) --> VIP1[["keepalived VIP<br/>10.80.80.210"]]
     end
 
-    subgraph GW["Gateway cluster — HA (keepalived + nftables)"]
+    subgraph GW["Gateway cluster — HA (keepalived + nftables + haproxy)"]
         direction LR
         GW1[gateway01]
         GW2[gateway02]
@@ -42,7 +42,6 @@ flowchart TB
 
         subgraph K8S["RKE2 cluster"]
             direction LR
-            VIP3[["kube-vip<br/>192.168.0.20"]]
             M1[master01]
             M2[master02]
             M3[master03]
@@ -58,12 +57,11 @@ flowchart TB
 
     style VIP1 fill:#844FBA,color:#fff
     style VIP2 fill:#844FBA,color:#fff
-    style VIP3 fill:#326CE5,color:#fff
 ```
 
-- **Gateways** are dual-homed (WAN + LAN) and run `nftables` (NAT/forwarding) + `keepalived` (VIP failover), so they're the only way in from the outside and survive a single node failure.
+- **Gateways** are dual-homed (WAN + LAN) and run `nftables` (NAT/forwarding) + `keepalived` (VIP failover) + `haproxy` (L4 proxy to the RKE2 API/join ports and ingress), so they're the only way in from the outside and survive a single node failure.
 - **Ceph** (3 nodes) and **RKE2** (3 masters + workers) live entirely on the private LAN, reached only through the gateway VIP.
-- **RKE2** control-plane HA is handled by `kube-vip`; the first master bootstraps the cluster and hands out the join token to the rest.
+- **RKE2** control-plane HA is handled by `haproxy` + `keepalived` on the gateways, proxying to all masters on 6443/9345; the first master bootstraps the cluster and hands out the join token to the rest.
 - The end goal: Ceph as the **StorageClass backend** for RKE2 - RBD (`ceph-csi-rbd`) for `ReadWriteOnce`, CephFS (`ceph-csi-cephfs`) for `ReadWriteMany`.
 
 ## Repository layout
@@ -77,10 +75,10 @@ OpenTofu/
 Ansible/
 ├── roles/
 │   ├── init/               # baseline packages/config, shared by every host
-│   ├── gateway/             # nftables + keepalived
+│   ├── gateway/             # nftables + keepalived + haproxy
 │   ├── ceph_init/           # cephadm bootstrap, OSDs, CephFS
 │   ├── ceph_wait_healthy/   # poll until the cluster reports HEALTH_OK
-│   └── rke2/                # RKE2 server/agent + kube-vip
+│   └── rke2/                # RKE2 server/agent
 ├── scripts/gen_inventory.py # `tofu output -json` -> Ansible inventory
 ├── inventory/
 │   ├── generated.ini        # hosts, derived from OpenTofu state (gitignored)
@@ -99,7 +97,7 @@ destroy.sh   # tears everything down in reverse order
 - **cephadm + Podman**, not native Debian/Ubuntu Ceph packages — Ubuntu Noble isn't packaged for the target Ceph release, and `cephadm` is the upstream-recommended path going forward anyway.
 - **Ansible inventory is generated, not hand-maintained.** Re-running `tofu apply` never leaves stale hosts behind, and the repo never contains a real IP address that isn't already in a `.tf` file.
 - **A dedicated `ceph_wait_healthy` role**, separate from `ceph_init` — `ceph orch apply` (OSDs, CephFS, MDS) returns immediately, before the orchestrator has actually converged. Anything that needs a healthy cluster polls for `HEALTH_OK` explicitly instead of hoping the timing works out.
-- **HA everywhere it's cheap:** keepalived VIPs for both gateway and Ceph-facing LAN, `kube-vip` for the Kubernetes API — the lab tolerates losing any single Proxmox host.
+- **HA everywhere it's cheap:** keepalived VIPs for both gateway and Ceph-facing LAN, `haproxy` on the gateways load-balancing the Kubernetes API/join ports across all masters — the lab tolerates losing any single Proxmox host.
 
 ## Prerequisites
 
@@ -125,9 +123,9 @@ source env.sh
 
 ## Status
 
-- ✅ Gateway HA (keepalived + nftables) provisioned and working
+- ✅ Gateway HA (keepalived + nftables + haproxy) provisioned and working
 - ✅ Ceph cluster healthy: 3 mons in quorum, mgr active/standby, OSDs up, CephFS volume created
-- ✅ RKE2 cluster up: HA control plane via `kube-vip`, workers joined
+- ✅ RKE2 cluster up: HA control plane via `haproxy` + `keepalived` on the gateways, workers joined
 - 🚧 Wiring Ceph into RKE2 as a storage backend:
   - [ ] RBD pool + `client.rbd-csi` keyring
   - [ ] CephFS `client.cephfs-csi` keyring

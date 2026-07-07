@@ -49,6 +49,15 @@
     - name: "First master | Install RKE2"
       ansible.builtin.import_tasks: master.yml
 
+    - name: Copy Custom Manifests
+      ansible.builtin.template:
+        src: "{{ item }}.j2"
+        dest: "{{ rke2_data_path }}/server/manifests/{{ item }}"
+        owner: root
+        group: root
+        mode: "0o644"
+      with_items: "{{ rke2_custom_manifests }}"
+
     - name: "First master | Fetch token"
       ansible.builtin.fetch:
         src: /var/lib/rancher/rke2/server/token
@@ -68,10 +77,6 @@
         path: ./files/rke2_config.yaml
         regexp: 'https://127\.0\.0\.1:6443'
         replace: "https://{{ external_ip }}:6443"
-
-    - name: "First master | Install kube-vip"
-      ansible.builtin.import_tasks: kube-vip.yml
-
 
 - name: "Read token into variable"
   ansible.builtin.set_fact:
