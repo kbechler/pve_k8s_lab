@@ -1,0 +1,43 @@
+---
+
+- name: "Read Ceph cluster ID (fsid)"
+  ansible.builtin.set_fact:
+    ceph_cluster_id: "{{ lookup('file', playbook_dir + '/files/ceph_fsid') }}"
+
+- name: "Read RBD CSI key"
+  ansible.builtin.set_fact:
+    ceph_rbd_csi_key: "{{ lookup('file', playbook_dir + '/files/ceph_rbd_csi.key') }}"
+
+- name: "Build Ceph monitor address list"
+  ansible.builtin.set_fact:
+    ceph_monitors: "{{ groups['ceph'] | map('extract', hostvars, 'ansible_host') | map('regex_replace', '$', ':6789') | list }}"
+
+- name: "Add ceph-csi Helm repo"
+  kubernetes.core.helm_repository:
+    name: ceph-csi
+    repo_url: "https://ceph.github.io/csi-charts"
+
+- name: "Create CSI namespace"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ playbook_dir }}/files/rke2_config.yaml"
+    api_version: v1
+    kind: Namespace
+    name: "{{ rke2_csi_namespace }}"
+    state: present
+
+- name: "Create RBD CSI secret"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ playbook_dir }}/files/rke2_config.yaml"
+    state: present
+    definition: "{{ lookup('template', 'ceph-csi-rbd-secret.yaml.j2') }}"
+
+- name: "Deploy ceph-csi-rbd"
+  kubernetes.core.helm:
+    name: ceph-csi-rbd
+    chart_ref: ceph-csi/ceph-csi-rbd
+    release_namespace: "{{ rke2_csi_namespace }}"
+    create_namespace: false
+    kubeconfig: "{{ playbook_dir }}/files/rke2_config.yaml"
+    values: "{{ lookup('template', 'ceph-csi-rbd-values.yaml.j2') | from_yaml }}"
+
+...

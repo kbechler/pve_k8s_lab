@@ -76,9 +76,10 @@ Ansible/
 ├── roles/
 │   ├── init/               # baseline packages/config, shared by every host
 │   ├── gateway/             # nftables + keepalived + haproxy
-│   ├── ceph_init/           # cephadm bootstrap, OSDs, CephFS
+│   ├── ceph_init/           # cephadm bootstrap, OSDs, CephFS, RBD pool + CSI keyring
 │   ├── ceph_wait_healthy/   # poll until the cluster reports HEALTH_OK
-│   └── rke2/                # RKE2 server/agent
+│   ├── rke2/                # RKE2 server/agent
+│   └── rke2_csi/            # ceph-csi-rbd via Helm, StorageClass for RBD
 ├── scripts/gen_inventory.py # `tofu output -json` -> Ansible inventory
 ├── inventory/
 │   ├── generated.ini        # hosts, derived from OpenTofu state (gitignored)
@@ -97,6 +98,7 @@ destroy.sh   # tears everything down in reverse order
 - **cephadm + Podman**, not native Debian/Ubuntu Ceph packages — Ubuntu Noble isn't packaged for the target Ceph release, and `cephadm` is the upstream-recommended path going forward anyway.
 - **Ansible inventory is generated, not hand-maintained.** Re-running `tofu apply` never leaves stale hosts behind, and the repo never contains a real IP address that isn't already in a `.tf` file.
 - **A dedicated `ceph_wait_healthy` role**, separate from `ceph_init` — `ceph orch apply` (OSDs, CephFS, MDS) returns immediately, before the orchestrator has actually converged. Anything that needs a healthy cluster polls for `HEALTH_OK` explicitly instead of hoping the timing works out.
+- **The `ceph-csi-rbd` Secret is applied as its own manifest**, not via the Helm chart's `secret.create: true` — keeps the CSI key out of `helm get values`.
 - **HA everywhere it's cheap:** keepalived VIPs for both gateway and Ceph-facing LAN, `haproxy` on the gateways load-balancing the Kubernetes API/join ports across all masters — the lab tolerates losing any single Proxmox host.
 
 ## Prerequisites
@@ -127,11 +129,10 @@ source env.sh
 - ✅ Ceph cluster healthy: 3 mons in quorum, mgr active/standby, OSDs up, CephFS volume created
 - ✅ RKE2 cluster up: HA control plane via `haproxy` + `keepalived` on the gateways, workers joined
 - 🚧 Wiring Ceph into RKE2 as a storage backend:
-  - [ ] RBD pool + `client.rbd-csi` keyring
+  - [x] RBD pool + `client.rbd-csi` keyring
+  - [x] `ceph-csi-rbd` via Helm + `StorageClass` for RBD (written, not yet verified on a live cluster)
   - [ ] CephFS `client.cephfs-csi` keyring
-  - [ ] Kubernetes manifests (ConfigMap with monitors/fsid, keyring Secrets)
-  - [ ] `ceph-csi` via Helm
-  - [ ] `StorageClass` for RBD and CephFS
+  - [ ] `ceph-csi-cephfs` via Helm + `StorageClass` for CephFS
 
 ## License
 

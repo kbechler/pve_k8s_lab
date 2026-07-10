@@ -1,0 +1,24 @@
+---
+csiConfig:
+  - clusterID: "{{ ceph_cluster_id }}"
+    monitors:
+{% for mon in ceph_monitors %}
+      - "{{ mon }}"
+{% endfor %}
+
+secret:
+  create: false
+
+storageClass:
+  create: true
+  clusterID: "{{ ceph_cluster_id }}"
+  pool: "{{ ceph_rbd_pool_name }}"
+  reclaimPolicy: Delete
+  allowVolumeExpansion: true
+  fstype: ext4
+  provisionerSecret: "{{ ceph_rbd_csi_secret_name }}"
+  provisionerSecretNamespace: "{{ rke2_csi_namespace }}"
+  controllerExpandSecret: "{{ ceph_rbd_csi_secret_name }}"
+  controllerExpandSecretNamespace: "{{ rke2_csi_namespace }}"
+  nodeStageSecret: "{{ ceph_rbd_csi_secret_name }}"
+  nodeStageSecretNamespace: "{{ rke2_csi_namespace }}"

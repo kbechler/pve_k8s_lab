@@ -1,3 +1,5 @@
+temp/
+
 # This file contains sensitive data like passwords and tokens
 env.sh
 

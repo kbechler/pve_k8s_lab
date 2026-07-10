@@ -10,4 +10,9 @@ external_ip: "10.80.80.210"
 # keepalived VIP on the LAN side).
 internal_gw: "192.168.0.4"
 
+# RBD pool for RWO PVCs. Shared between ceph_init (creates it) and
+# rke2_csi (references it in the ceph-csi-rbd StorageClass) -- the two
+# roles run in separate playbooks, so this can't just be a role default.
+ceph_rbd_pool_name: "ceph-rbd"
+
 ...

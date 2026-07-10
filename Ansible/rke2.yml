@@ -21,4 +21,10 @@
   roles:
     - { role: "rke2", tags: ["rke2"] }
 
+- name: "Install Helm charts"
+  hosts: localhost
+  connection: local
+  roles:
+    - { role: "rke2_csi", tags: ["csi"] }
+
 ...

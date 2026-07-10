@@ -1,0 +1,7 @@
+---
+
+rke2_csi_namespace: "ceph-csi-rbd"
+ceph_rbd_csi_user: "rbd-csi"
+ceph_rbd_csi_secret_name: "csi-rbd-secret"
+
+...

@@ -68,4 +68,36 @@
       ansible.builtin.command: >
         cephadm shell -- ceph orch apply mds {{ ceph_cephfs_name }} --placement "3"
 
+    - name: "Check if RBD pool exists"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph osd pool ls
+      register: ceph_pool_list
+
+    - name: "Create RBD pool"
+      when: ceph_rbd_pool_name not in ceph_pool_list.stdout_lines
+      ansible.builtin.command: >
+        cephadm shell -- ceph osd pool create {{ ceph_rbd_pool_name }}
+
+    - name: "Initialize RBD pool"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- rbd pool init {{ ceph_rbd_pool_name }}
+
+    - name: "Create CSI keyring for RBD"
+      changed_when: false
+      ansible.builtin.command: >
+        cephadm shell -- ceph auth get-or-create-key client.rbd-csi
+        mon 'profile rbd'
+        osd 'profile rbd pool={{ ceph_rbd_pool_name }}'
+        mgr 'profile rbd pool={{ ceph_rbd_pool_name }}'
+      register: ceph_rbd_csi_key
+
+    - name: "Save RBD CSI key locally (needed later for ceph-csi Secret)"
+      delegate_to: localhost
+      become: false
+      ansible.builtin.copy:
+        content: "{{ ceph_rbd_csi_key.stdout_lines[-1] }}"
+        dest: ./files/ceph_rbd_csi.key
+
 ...
